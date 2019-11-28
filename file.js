@@ -27,13 +27,17 @@ module.exports = function (file, block_size, flags) {
   //
 
   const lock = new ReadWriteLock();
+  
+  console.log('path.dirname(file)', path.dirname(file))
 
   mkdirp(path.dirname(file), function () {
     //r+ opens the file for reading and writing, but errors if file does not exist.
     //to open the file for reading and writing and not error if it does not exist.
     //we need to open and close the file for append first.
     fs.open(file, 'a', function (_, _fd) {
+      console.log('inside first open')
       fs.close(_fd, function (_) {
+        console.log('inside close')
         fs.open(file, flags, function (err, _fd) {
           fd = _fd
           console.log('!fd', fd)
@@ -57,6 +61,8 @@ module.exports = function (file, block_size, flags) {
             return cb(new Error('aligned-block-file/file.get: requested block index was greater than max, got:'+i+', expected less than or equal to:'+max))
 
           var buf = Buffer.alloc(block_size)
+          
+          console.log('fd', fd)
 
           fs.read(fd, buf, 0, block_size, i*block_size, function (err, bytes_read) {
             release()
