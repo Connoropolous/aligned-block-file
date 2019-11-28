@@ -5,6 +5,9 @@ var path = require('path')
 const ReadWriteLock = require('rwlock');
 
 module.exports = function (file, block_size, flags) {
+  
+  console.log('!!!', file)
+  
   flags = flags || 'r+'
   var fd
   var offset = Obv()
