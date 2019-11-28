@@ -36,6 +36,7 @@ module.exports = function (file, block_size, flags) {
       fs.close(_fd, function (_) {
         fs.open(file, flags, function (err, _fd) {
           fd = _fd
+          console.log('!fd', fd)
           fs.stat(file, function (err, stat) {
             offset.set(err ? 0 : stat.size)
           })
