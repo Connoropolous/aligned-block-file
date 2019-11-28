@@ -5,9 +5,9 @@ var path = require('path')
 const ReadWriteLock = require('rwlock');
 
 module.exports = function (file, block_size, flags) {
-  
+
   console.log('!!!', file)
-  
+
   flags = flags || 'r+'
   var fd
   var offset = Obv()
@@ -27,7 +27,7 @@ module.exports = function (file, block_size, flags) {
   //
 
   const lock = new ReadWriteLock();
-  
+
   console.log('path.dirname(file)', path.dirname(file))
 
   mkdirp(path.dirname(file), function () {
@@ -58,28 +58,30 @@ module.exports = function (file, block_size, flags) {
       offset.once(function (_offset) {
         lock.readLock((release) => {
           var max = ~~(_offset / block_size)
-          if(i > max)
-            return cb(new Error('aligned-block-file/file.get: requested block index was greater than max, got:'+i+', expected less than or equal to:'+max))
+          if (i > max)
+            return cb(new Error('aligned-block-file/file.get: requested block index was greater than max, got:' + i + ', expected less than or equal to:' + max))
 
           var buf = Buffer.alloc(block_size)
-          
+
           console.log('fd', fd)
 
-          fs.read(fd, buf, 0, block_size, i*block_size, function (err, bytes_read) {
+          fs.read(fd, buf, 0, block_size, i * block_size, function (err, bytes_read) {
             release()
-            if(err) cb(err)
-            else if(
+            if (err) cb(err)
+            else if (
               //if bytes_read is wrong
               i < max &&
               buf.length !== bytes_read &&
               //unless this is the very last block and it is incomplete.
-              !((i*block_size + bytes_read) == offset.value)
-            )
+              !((i * block_size + bytes_read) == offset.value)
+            ) {
+              console.log('i', i)
+              console.log('offset.value', offset.value)
               cb(new Error(
-                'aligned-block-file/file.get: did not read whole block, expected length:'+
-                block_size+' but got:'+bytes_read
+                'aligned-block-file/file.get: did not read whole block, expected length:' +
+                block_size + ' but got:' + bytes_read
               ))
-            else
+            } else
               cb(null, buf, bytes_read)
           })
         })
@@ -88,14 +90,14 @@ module.exports = function (file, block_size, flags) {
     offset: offset,
     size: function () { return offset.value },
     append: function (buf, cb) {
-      if(appending++) throw new Error('already appending to this file')
+      if (appending++) throw new Error('already appending to this file')
       offset.once(function (_offset) {
         fs.write(fd, buf, 0, buf.length, _offset, function (err, written) {
           appending = 0
-          if(err) return cb(err)
-          if(written !== buf.length) return cb(new Error('wrote less bytes than expected:'+written+', but wanted:'+buf.length))
-          offset.set(_offset+written)
-          cb(null, _offset+written)
+          if (err) return cb(err)
+          if (written !== buf.length) return cb(new Error('wrote less bytes than expected:' + written + ', but wanted:' + buf.length))
+          offset.set(_offset + written)
+          cb(null, _offset + written)
         })
       })
     },
@@ -109,7 +111,7 @@ module.exports = function (file, block_size, flags) {
      * @param {function} cb - callback that returns any error as an argument
      */
     write: (buf, pos, cb) => {
-      if(flags !== 'r+') throw new Error('file opened with flags:'+flags+' refusing to write unless flags are:r+')
+      if (flags !== 'r+') throw new Error('file opened with flags:' + flags + ' refusing to write unless flags are:r+')
       offset.once((_offset) => {
         const endPos = pos + buf.length
         const isPastOffset = endPos > _offset
@@ -122,7 +124,7 @@ module.exports = function (file, block_size, flags) {
           fs.write(fd, buf, 0, buf.length, pos, (err, written) => {
             release()
             if (err == null && written !== buf.length) {
-              cb(new Error('wrote less bytes than expected:'+written+', but wanted:'+buf.length))
+              cb(new Error('wrote less bytes than expected:' + written + ', but wanted:' + buf.length))
             } else {
               cb(err)
             }
@@ -131,11 +133,11 @@ module.exports = function (file, block_size, flags) {
       })
     },
     truncate: function (len, cb) {
-      if(appending) throw new Error('already appending, cannot truncate')
+      if (appending) throw new Error('already appending, cannot truncate')
       offset.once(function (_offset) {
-        if(_offset <= len) return cb()
+        if (_offset <= len) return cb()
         fs.ftruncate(fd, len, function (err) {
-          if(err) cb(err)
+          if (err) cb(err)
           else {
             offset.set(len)
             cb(null, offset.value)
